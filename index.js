@@ -7,27 +7,76 @@ app.use(express.json());
 
 const port = Number(process.env.SERVER_PORT || 8000);
 
-app.get('/', (req, res) => {
-    res.status(200).send({
-        "message": "Try http://url/:id/:height"
-    });
-})
-
-app.get('/:id/:height', async (req, res) => {
-    const id = req.params.id;
-    const height = req.params.height;
-    const ytResp = await youtubeDl('https://www.youtube.com/watch?v=' + id, {
+const Retrive = async (id) => {
+    const resp = await youtubeDl('https://www.youtube.com/watch?v=' + id, {
         dumpSingleJson: true,
         noWarnings: true,
         noCheckCertificate: true,
         preferFreeFormats: true,
         youtubeSkipDashManifest: true
     });
+    return resp;
+};
+
+const FormatsCompareAsc = async (a, b) => {
+    if (a.height < b.height) {
+        return -1;
+    }
+    if (a.height > b.height) {
+        return 1;
+    }
+    return 0;
+}
+
+const FormatsCompareDesc = async (a, b) => {
+    if (a.height < b.height) {
+        return 1;
+    }
+    if (a.height > b.height) {
+        return -1;
+    }
+    return 0;
+}
+
+app.get('/', (req, res) => {
+    res.status(200).send({
+        "message": "Try http://url/:id/:height"
+    });
+})
+
+app.get('/:id/lowest', async (req, res) => {
+    const id = req.params.id;
+    const ytResp = await Retrive(id);
+    const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
+    if (filteredResp.length > 0) {
+        res.status(200).send(filteredResp[0]);
+    } else {
+        res.status(500).send({
+            "message": "Cannot retreive the livestream's URL",
+        });
+    }
+});
+
+app.get('/:id/highest', async (req, res) => {
+    const id = req.params.id;
+    const ytResp = await Retrive(id);
+    const filteredResp = ytResp.formats.sort(FormatsCompareDesc);
+    if (filteredResp.length > 0) {
+        res.status(200).send(filteredResp[0]);
+    } else {
+        res.status(500).send({
+            "message": "Cannot retreive the livestream's URL",
+        });
+    }
+});
+
+app.get('/:id/:height', async (req, res) => {
+    const id = req.params.id;
+    const height = req.params.height;
+    const ytResp = await Retrive(id);
     const filteredResp = ytResp.formats.filter(o => o.height == height);
     if (filteredResp.length > 0) {
-        res.status(200).send({
-            "url": filteredResp[0].url,
-        });
+        res.status(200).send(filteredResp[0]);
     } else {
         res.status(500).send({
             "message": "Cannot retreive the livestream's URL",
