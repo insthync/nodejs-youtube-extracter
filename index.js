@@ -9,14 +9,13 @@ const port = Number(process.env.SERVER_PORT || 8000);
 
 app.get('/', (req, res) => {
     res.status(200).send({
-        "message": "Try http://url/:quality/:id"
+        "message": "Try http://url/:id/:height"
     });
 })
 
-app.get('/:quality/:id', async (req, res) => {
-    const quality = req.params.quality;
+app.get('/:id/:height', async (req, res) => {
     const id = req.params.id;
-    
+    const height = req.params.height;
     const ytResp = await youtubeDl('https://www.youtube.com/watch?v=' + id, {
         dumpSingleJson: true,
         noWarnings: true,
@@ -24,12 +23,15 @@ app.get('/:quality/:id', async (req, res) => {
         preferFreeFormats: true,
         youtubeSkipDashManifest: true
     });
-
-    const filteredResp = ytResp.formats.filter(resp => resp.quality == quality);
+    const filteredResp = ytResp.formats.filter(o => o.height == height);
     if (filteredResp.length > 0) {
-        res.status(200).send(filteredResp[0]);
+        res.status(200).send({
+            "url": filteredResp[0].url,
+        });
     } else {
-        res.status(500);
+        res.status(500).send({
+            "message": "Cannot retreive the livestream's URL",
+        });
     }
 });
 
