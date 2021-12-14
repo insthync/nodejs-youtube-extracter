@@ -28,16 +28,6 @@ const FormatsCompareAsc = async (a, b) => {
     return 0;
 }
 
-const FormatsCompareDesc = async (a, b) => {
-    if (a.height < b.height) {
-        return 1;
-    }
-    if (a.height > b.height) {
-        return -1;
-    }
-    return 0;
-}
-
 app.get('/', (req, res) => {
     res.status(200).send({
         "message": "Try http://url/:id/:height"
@@ -60,7 +50,8 @@ app.get('/:id/lowest', async (req, res) => {
 app.get('/:id/highest', async (req, res) => {
     const id = req.params.id;
     const ytResp = await Retrive(id);
-    const filteredResp = ytResp.formats.sort(FormatsCompareDesc);
+    const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
+    filteredResp.reverse();
     if (filteredResp.length > 0) {
         res.status(200).send(filteredResp[0]);
     } else {
