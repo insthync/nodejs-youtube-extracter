@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 
 const port = Number(process.env.SERVER_PORT || 8000);
+const caches = [];
 
 const Retrive = async (id) => {
     const resp = await youtubeDl('https://www.youtube.com/watch?v=' + id, {
@@ -36,42 +37,60 @@ app.get('/', (req, res) => {
 
 app.get('/:id/lowest', async (req, res) => {
     const id = req.params.id;
-    const ytResp = await Retrive(id);
-    const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
-    if (filteredResp.length > 0) {
-        res.status(200).send(filteredResp[0]);
+    const key = id + "_lowest";
+    if (key in caches) {
+        res.status(200).send(caches[key]);
     } else {
-        res.status(500).send({
-            "message": "Cannot retreive the livestream's URL",
-        });
+        const ytResp = await Retrive(id);
+        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
+        if (filteredResp.length > 0) {
+            caches[key] = filteredResp[0];
+            res.status(200).send(filteredResp[0]);
+        } else {
+            res.status(500).send({
+                "message": "Cannot retreive the livestream's URL",
+            });
+        }
     }
 });
 
 app.get('/:id/highest', async (req, res) => {
     const id = req.params.id;
-    const ytResp = await Retrive(id);
-    const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
-    filteredResp.reverse();
-    if (filteredResp.length > 0) {
-        res.status(200).send(filteredResp[0]);
+    const key = id + "_highest";
+    if (key in caches) {
+        res.status(200).send(caches[key]);
     } else {
-        res.status(500).send({
-            "message": "Cannot retreive the livestream's URL",
-        });
+        const ytResp = await Retrive(id);
+        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
+        filteredResp.reverse();
+        if (filteredResp.length > 0) {
+            caches[key] = filteredResp[0];
+            res.status(200).send(filteredResp[0]);
+        } else {
+            res.status(500).send({
+                "message": "Cannot retreive the livestream's URL",
+            });
+        }
     }
 });
 
 app.get('/:id/:height', async (req, res) => {
     const id = req.params.id;
     const height = req.params.height;
-    const ytResp = await Retrive(id);
-    const filteredResp = ytResp.formats.filter(o => o.height == height);
-    if (filteredResp.length > 0) {
-        res.status(200).send(filteredResp[0]);
+    const key = id + "_" + height;
+    if (key in caches) {
+        res.status(200).send(caches[key]);
     } else {
-        res.status(500).send({
-            "message": "Cannot retreive the livestream's URL",
-        });
+        const ytResp = await Retrive(id);
+        const filteredResp = ytResp.formats.filter(o => o.height == height);
+        if (filteredResp.length > 0) {
+            caches[key] = filteredResp[0];
+            res.status(200).send(filteredResp[0]);
+        } else {
+            res.status(500).send({
+                "message": "Cannot retreive the livestream's URL",
+            });
+        }
     }
 });
 
