@@ -82,10 +82,23 @@ app.get('/:id/:height', async (req, res) => {
         res.status(200).send(caches[key]);
     } else {
         const ytResp = await Retrive(id);
-        const filteredResp = ytResp.formats.filter(o => o.height == height);
+        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
         if (filteredResp.length > 0) {
-            caches[key] = filteredResp[0];
-            res.status(200).send(filteredResp[0]);
+            let indexOfData = -1;
+            for (let index = 0; index < filteredResp.length; index++) {
+                indexOfData = index;
+                if (filteredResp[index].height >= height) {
+                    break;
+                }
+            }
+            if (indexOfData >= 0) {
+                caches[key] = filteredResp[indexOfData];
+                res.status(200).send(filteredResp[indexOfData]);
+            } else {
+                res.status(500).send({
+                    "message": "Cannot retreive the livestream's URL",
+                });
+            }
         } else {
             res.status(500).send({
                 "message": "Cannot retreive the livestream's URL",
