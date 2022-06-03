@@ -49,8 +49,9 @@ const GetFromCache = (key) => {
         {
             return undefined;
         }
+        return caches[key].url;
     }
-    return caches[key].url;
+    return undefined;
 }
 
 app.get('/', (req, res) => {
