@@ -83,6 +83,7 @@ app.get('/:id/lowest', async (req, res) => {
 app.get('/:id/highest', async (req, res) => {
     const id = req.params.id;
     const key = id + "_highest";
+    const cacheData = GetFromCache(key);
     if (cacheData !== undefined) {
         res.status(200).send(cacheData);
     } else {
@@ -104,6 +105,7 @@ app.get('/:id/:height', async (req, res) => {
     const id = req.params.id;
     const height = req.params.height;
     const key = id + "_" + height;
+    const cacheData = GetFromCache(key);
     if (cacheData !== undefined) {
         res.status(200).send(cacheData);
     } else {
