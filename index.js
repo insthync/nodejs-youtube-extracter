@@ -11,6 +11,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const port = Number(process.env.SERVER_PORT || 8000);
+const useHttps = Number(process.env.USE_HTTPS || 0) > 0;
+const keyFilePath = process.env.HTTPS_KEY_FILE_PATH;
+const certFilePath = process.env.HTTPS_CERT_FILE_PATH;
+const httpsPort = Number(process.env.HTTPS_SERVER_PORT || 8080);
+const useProxy = Number(process.env.USE_PROXY || 0) > 0;
+const proxyUrl = process.env.PROXY_URL;
 const caches = {};
 
 const Extract = async (id) => {
@@ -23,6 +30,21 @@ const Extract = async (id) => {
         youtubeSkipDashManifest: true
     });
     return resp;
+};
+
+const GetResponseUrl = function (key) {
+    const videoUrl = GetFromCache(key).url;
+    if (useProxy) {
+        return `${proxyUrl}/${Buffer.from(videoUrl, 'utf8').toString('base64')}.m3u8`;
+    }
+    return videoUrl;
+}
+
+const Response = function (key, extractedData, req, res) {
+    StoreToCache(key, extractedData);
+    res.status(200).send({
+        url: GetResponseUrl(key),
+    });
 };
 
 const FormatsCompareAsc = async (a, b) => {
@@ -44,9 +66,8 @@ const StoreToCache = (key, url) => {
 
 const GetFromCache = (key) => {
     if (key in caches) {
-        // If it were cached 10 second ago, re-extract it
-        if (Date.now() - caches[key].time >= 10000)
-        {
+        // If it were cached 30 second ago, re-extract it
+        if (Date.now() - caches[key].time >= 30000) {
             return undefined;
         }
         return caches[key].url;
@@ -60,12 +81,35 @@ app.get('/', (req, res) => {
     });
 })
 
+app.get('/:key', async (req, res) => {
+    const key = req.params.key;
+    const cacheData = GetFromCache(key);
+    if (cacheData === undefined) {
+        res.status(500).send({
+            "message": "Cannot load file with key: `" + key + "`",
+        });
+        return;
+    }
+    console.log(cacheData.url);
+    https.get(cacheData.url, function (response) {
+        res.writeHead(200, { "Content-Type": "application/x-mpegURL" });
+        response.pipe(res);
+    }).on('error', function (err) { // Handle errors
+        fs.unlink(dest); // Delete the file async. (But we don't check the result)
+        res.status(500).send({
+            "message": "Cannot extract YouTube URL from `" + id + "`, File error: `" + err.message + "`",
+        });
+    });
+});
+
 app.get('/:id/lowest', async (req, res) => {
     const id = req.params.id;
     const key = id + "_lowest";
     const cacheData = GetFromCache(key);
     if (cacheData !== undefined) {
-        res.status(200).send(cacheData);
+        res.status(200).send({
+            url: GetResponseUrl(key, req),
+        });
     } else {
         const ytResp = await Extract(id);
         const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
@@ -75,8 +119,7 @@ app.get('/:id/lowest', async (req, res) => {
             });
             return;
         }
-        StoreToCache(key, filteredResp[0]);
-        res.status(200).send(filteredResp[0]);
+        Response(key, filteredResp[0], req, res);
     }
 });
 
@@ -85,7 +128,9 @@ app.get('/:id/highest', async (req, res) => {
     const key = id + "_highest";
     const cacheData = GetFromCache(key);
     if (cacheData !== undefined) {
-        res.status(200).send(cacheData);
+        res.status(200).send({
+            url: GetResponseUrl(key, req),
+        });
     } else {
         const ytResp = await Extract(id);
         const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
@@ -96,8 +141,7 @@ app.get('/:id/highest', async (req, res) => {
             return;
         }
         filteredResp.reverse();
-        StoreToCache(key, filteredResp[0]);
-        res.status(200).send(filteredResp[0]);
+        Response(key, filteredResp[0], req, res);
     }
 });
 
@@ -107,7 +151,9 @@ app.get('/:id/:height', async (req, res) => {
     const key = id + "_" + height;
     const cacheData = GetFromCache(key);
     if (cacheData !== undefined) {
-        res.status(200).send(cacheData);
+        res.status(200).send({
+            url: GetResponseUrl(key, req),
+        });
     } else {
         const ytResp = await Extract(id);
         const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
@@ -124,16 +170,9 @@ app.get('/:id/:height', async (req, res) => {
                 break;
             }
         }
-        StoreToCache(key, filteredResp[indexOfData]);
-        res.status(200).send(filteredResp[indexOfData]);
+        Response(key, filteredResp[indexOfData], req, res);
     }
 });
-
-const port = Number(process.env.SERVER_PORT || 8000);
-const useHttps = Number(process.env.USE_HTTPS || 0) > 0;
-const keyFilePath = process.env.HTTPS_KEY_FILE_PATH;
-const certFilePath = process.env.HTTPS_CERT_FILE_PATH;
-const httpsPort = Number(process.env.HTTPS_SERVER_PORT || 8080);
 
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
