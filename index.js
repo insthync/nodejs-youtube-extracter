@@ -35,7 +35,7 @@ const Extract = async (id) => {
 const GetResponseUrl = function (key) {
     const cachedData = GetFromCache(key);
     const videoUrl = cachedData.url;
-    if (useProxy && cachedData.isLive) {
+    if (useProxy/* && cachedData.isLive*/) {
         return `${proxyUrl}/${Buffer.from(videoUrl, 'utf8').toString('base64')}.m3u8`;
     }
     return videoUrl;
