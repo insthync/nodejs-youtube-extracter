@@ -77,6 +77,19 @@ const GetFromCache = (key) => {
     return undefined;
 }
 
+const GetAvailableFormats = (formats) => {
+    const result = [];
+    formats.forEach(format => {
+        if (format.acodec && format.vcodec &&
+            format.acodec.toLowerCase() != "none" &&
+            format.vcodec.toLowerCase() != "none")
+        {
+            result.push(format);
+        }
+    });
+    return result;
+}
+
 app.get('/', (req, res) => {
     res.status(200).send({
         "message": "Try `http://url/:id/:height`"
@@ -114,7 +127,7 @@ app.get('/:id/lowest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
@@ -135,7 +148,7 @@ app.get('/:id/highest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
@@ -158,7 +171,7 @@ app.get('/:id/:height', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
