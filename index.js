@@ -33,15 +33,16 @@ const Extract = async (id) => {
 };
 
 const GetResponseUrl = function (key) {
-    const videoUrl = GetFromCache(key).url;
-    if (useProxy) {
+    const cachedData = GetFromCache(key);
+    const videoUrl = cachedData.url;
+    if (useProxy && !cachedData.isLive) {
         return `${proxyUrl}/${Buffer.from(videoUrl, 'utf8').toString('base64')}.m3u8`;
     }
     return videoUrl;
 }
 
-const Response = function (key, extractedData, req, res) {
-    StoreToCache(key, extractedData);
+const Response = function (key, videoUrl, isLive, req, res) {
+    StoreToCache(key, videoUrl, isLive);
     res.status(200).send({
         url: GetResponseUrl(key),
     });
@@ -57,9 +58,10 @@ const FormatsCompareAsc = async (a, b) => {
     return 0;
 }
 
-const StoreToCache = (key, url) => {
+const StoreToCache = (key, url, isLive) => {
     caches[key] = {
         url,
+        isLive,
         time: Date.now(),
     };
 }
@@ -112,14 +114,14 @@ app.get('/:id/lowest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
-        if (filteredResp.length <= 0) {
+        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
             });
             return;
         }
-        Response(key, filteredResp[0], req, res);
+        Response(key, sortedFormats[0], ytResp.is_live, req, res);
     }
 });
 
@@ -133,15 +135,15 @@ app.get('/:id/highest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
-        if (filteredResp.length <= 0) {
+        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
             });
             return;
         }
-        filteredResp.reverse();
-        Response(key, filteredResp[0], req, res);
+        sortedFormats.reverse();
+        Response(key, sortedFormats[0], ytResp.is_live, req, res);
     }
 });
 
@@ -156,21 +158,21 @@ app.get('/:id/:height', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
-        const filteredResp = ytResp.formats.sort(FormatsCompareAsc);
-        if (filteredResp.length <= 0) {
+        const sortedFormats = ytResp.formats.sort(FormatsCompareAsc);
+        if (sortedFormats.length <= 0) {
             res.status(500).send({
                 "message": "Cannot extract YouTube URL from `" + id + "`",
             });
             return;
         }
         let indexOfData = 0;
-        for (let index = 0; index < filteredResp.length; index++) {
+        for (let index = 0; index < sortedFormats.length; index++) {
             indexOfData = index;
-            if (filteredResp[index].height >= height) {
+            if (sortedFormats[index].height >= height) {
                 break;
             }
         }
-        Response(key, filteredResp[indexOfData], req, res);
+        Response(key, sortedFormats[indexOfData], ytResp.is_live, req, res);
     }
 });
 
