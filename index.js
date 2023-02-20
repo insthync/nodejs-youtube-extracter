@@ -22,14 +22,19 @@ const caches = {};
 
 const Extract = async (id) => {
     const url = 'https://www.youtube.com/watch?v=' + id;
-    const resp = await youtubeDl(url, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        noCheckCertificate: true,
-        preferFreeFormats: true,
-        youtubeSkipDashManifest: true
-    });
-    return resp;
+    try {
+        const resp = await youtubeDl(url, {
+            dumpSingleJson: true,
+            noWarnings: true,
+            noCheckCertificate: true,
+            preferFreeFormats: true,
+            youtubeSkipDashManifest: true
+        });
+        return resp;
+    } catch (error) {
+        console.log("Error occurring when extracting: " + error);
+    }
+    return undefined;
 };
 
 const GetResponseUrl = function (key) {
@@ -72,7 +77,7 @@ const GetFromCache = (key) => {
         if (Date.now() - caches[key].time >= 30000) {
             return undefined;
         }
-        return caches[key].url;
+        return caches[key];
     }
     return undefined;
 }
@@ -127,6 +132,9 @@ app.get('/:id/lowest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
+        if (!ytResp) {
+            return;
+        }
         const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
@@ -134,7 +142,7 @@ app.get('/:id/lowest', async (req, res) => {
             });
             return;
         }
-        Response(key, sortedFormats[0], ytResp.is_live, req, res);
+        Response(key, sortedFormats[0].url, ytResp.is_live, req, res);
     }
 });
 
@@ -148,6 +156,9 @@ app.get('/:id/highest', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
+        if (!ytResp) {
+            return;
+        }
         const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
@@ -156,7 +167,7 @@ app.get('/:id/highest', async (req, res) => {
             return;
         }
         sortedFormats.reverse();
-        Response(key, sortedFormats[0], ytResp.is_live, req, res);
+        Response(key, sortedFormats[0].url, ytResp.is_live, req, res);
     }
 });
 
@@ -171,6 +182,9 @@ app.get('/:id/:height', async (req, res) => {
         });
     } else {
         const ytResp = await Extract(id);
+        if (!ytResp) {
+            return;
+        }
         const sortedFormats = GetAvailableFormats(ytResp.formats).sort(FormatsCompareAsc);
         if (sortedFormats.length <= 0) {
             res.status(500).send({
@@ -185,7 +199,7 @@ app.get('/:id/:height', async (req, res) => {
                 break;
             }
         }
-        Response(key, sortedFormats[indexOfData], ytResp.is_live, req, res);
+        Response(key, sortedFormats[indexOfData].url, ytResp.is_live, req, res);
     }
 });
 
