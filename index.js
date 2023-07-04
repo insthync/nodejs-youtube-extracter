@@ -84,14 +84,16 @@ const GetFromCache = (key) => {
 
 const GetAvailableFormats = (formats) => {
     const result = [];
-    formats.forEach(format => {
-        if (format.acodec && format.vcodec &&
-            format.acodec.toLowerCase() != "none" &&
-            format.vcodec.toLowerCase() != "none")
-        {
-            result.push(format);
-        }
-    });
+    if (formats) {
+        formats.forEach(format => {
+            if (format.acodec && format.vcodec &&
+                format.acodec.toLowerCase() != "none" &&
+                format.vcodec.toLowerCase() != "none")
+            {
+                result.push(format);
+            }
+        });
+    }
     return result;
 }
 
