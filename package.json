@@ -12,9 +12,9 @@
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "nodemon": "^3.0.1",
-    "youtube-dl-exec": "^2.4.13"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "nodemon": "^3.1.7",
+    "youtube-dl-exec": "^3.0.10"
   }
 }
