@@ -22,14 +22,20 @@ const caches = {};
 
 const Extract = async (id) => {
     const url = 'https://www.youtube.com/watch?v=' + id;
+    let dlOptions = {};
     try {
-        const resp = await youtubeDl(url, {
+        dlOptions = JSON.stringify(process.env.DL_OPTIONS!)
+    } catch {
+        dlOptions = {
             dumpSingleJson: true,
             noWarnings: true,
             noCheckCertificate: true,
             preferFreeFormats: true,
             youtubeSkipDashManifest: true
-        });
+        };
+    }
+    try {
+        const resp = await youtubeDl(url, dlOptions);
         return resp;
     } catch (error) {
         console.log("Error occurring when extracting: " + error);
