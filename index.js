@@ -24,7 +24,7 @@ const Extract = async (id) => {
     const url = 'https://www.youtube.com/watch?v=' + id;
     let dlOptions = {};
     try {
-        dlOptions = JSON.stringify(process.env.DL_OPTIONS)
+        dlOptions = JSON.parse(process.env.DL_OPTIONS)
     } catch {
         dlOptions = {
             dumpSingleJson: true,
